@@ -1,0 +1,5 @@
+fecha,nombreEstablecimiento,proyecto,descripcionCompra,factura,recibo,tecnico,semana,total
+
+4/5/2024,Texaco,CORE,Diesel,400,,Juan Carlos Garcia,15,1800.00
+4/7/2024,Juan Carlos Garcia,CORE,Viaticos del 04/01/2024 al 04/07/2024,,350,Juan Carlos Garcia,15,1800.00
+4/5/2024,Pollo campero,CORE,Comida,1050,,Juan Carlos Garcia,15,1800.00

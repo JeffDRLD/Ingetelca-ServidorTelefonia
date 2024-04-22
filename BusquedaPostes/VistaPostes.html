@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consulta de Datos</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <style>
+        .round-btn {
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 5px;
+        }
+        .btn:focus, .btn:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        #dataForm button {
+            transition: background-color 0.3s ease-in-out;
+        }
+        #dataForm button:hover {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .share-buttons {
+            display: flex;
+            margin-top: 10px;
+        }
+        .bi {
+            font-size: 2rem;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        .loader {
+            width: 60px;
+            height: 25px;
+            border: 2px solid;
+            box-sizing: border-box;
+            border-radius: 50%;
+            display: grid;
+            animation: l2 2s infinite linear;
+        }
+        .loader:before, .loader:after {
+            content: "";
+            grid-area: 1/1;
+            border: inherit;
+            border-radius: 50%;
+            animation: inherit;
+            animation-duration: 3s;
+        }
+        .loader:after {
+            --s: -1;
+        }
+        @keyframes l2 {
+            100% {
+                transform: rotate(calc(var(--s, 1) * 1turn));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" style="display: none">
+        <img src="https://ingetelca.gt/wp-content/uploads/2011/07/logopeq.png" alt="Loading Image" style="width: 120px; height: auto; margin-bottom: 20px"/>
+        <div class="loader"></div>
+    </div>
+    <div class="container p-5">
+        <h2>Busqueda de postes y sitios</h2>
+        <form id="dataForm">
+            <div class="form-group">
+                <label for="idInput">Ingrese el número de poste o sitio:</label>
+                <input type="text" class="form-control" id="idInput" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+        <div id="result" class="mt-5"></div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        document.getElementById("dataForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const loadingOverlay = document.querySelector(".loading-overlay");
+            loadingOverlay.style.display = "flex";
+            const id = document.getElementById("idInput").value;
+            fetch("/SolicitudPoste", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ id }),
+            })
+            .then(response => {
+                loadingOverlay.style.display = "none";
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.Latitud) {
+                    const mapLink = `https://www.google.com/maps/search/?api=1&query=${data.Latitud},${data.Longitud}`;
+                    const message = `Número: ${data._id}\nLugar: ${data.Descripcion}\nVer en mapa: ${mapLink}`;
+                    const messageTelegram = `ID: ${data._id}\nLugar: ${data.Descripcion}`;
+                    document.getElementById("result").innerHTML = 
+                        `<h4>Localización:</h4>
+                        <p>Número: ${data._id}</p>
+                        <p>Lugar: ${data.Descripcion}</p>
+                        <div id="map" style="width: 100%; height: 400px;"></div>
+                        <div class="share-buttons">
+                            <button class="btn btn-success round-btn" onclick="window.open('https://wa.me/?text=${encodeURIComponent(message)}', '_blank')"><i class="bi bi-whatsapp"></i></button>
+                            <button class="btn btn-info round-btn" onclick="window.open('https://telegram.me/share/url?url=${encodeURIComponent(mapLink)}&text=${encodeURIComponent(messageTelegram)}', '_blank')"><i class="bi bi-telegram"></i></button>
+                            <button class="btn btn-primary round-btn" onclick="window.open('geo:${data.Latitud},${data.Longitud}?q=${data.Latitud},${data.Longitud}(Marcador)', '_blank')"><i class="bi bi-geo-alt-fill"></i></button>
+
+                        </div><h4>Compartir</h4>`;
+                    const map = L.map("map").setView([data.Latitud, data.Longitud], 13);
+                    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                        attribution: "© OpenStreetMap contributors",
+                    }).addTo(map);
+                    L.marker([data.Latitud, data.Longitud]).addTo(map);
+                } else {
+                    document.getElementById("result").innerHTML = "<h4>Poste no encontrado</h4>";
+                }
+            })
+            .catch(error => {
+                loadingOverlay.style.display = "none";
+                console.error("Error:", error);
+                document.getElementById("result").innerHTML = "<h4>Error al procesar la solicitud</h4>";
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Descargas Docs</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="container d-flex flex-column justify-content-center align-items-center vh-100 text-center">
+      <img src="https://ingetelca.gt/wp-content/uploads/2011/07/logopeq.png" class="img-fluid mb-3" style="max-width: 20%;">
+      <h3 class="mb-3">Ingrese la semana a descargar:</h3>
+      <input type="text" id="searchInput" class="form-control mb-3" style="width: 80%;" placeholder="Buscar...">
+      <button onclick="search()" class="btn btn-primary mb-3">Buscar</button>
+      <p id="searchResult"></p>
+  </div>
+
+  <script>
+      function search() {
+          var searchInput = document.getElementById('searchInput').value;
+
+          // Validar que el input sea un número entre 1 y 52
+          if (!/^[1-9]$|^[1-4][0-9]$|^52$/.test(searchInput)) {
+              alert('Por favor, ingrese un número válido entre 1 y 52.');
+              return;
+          }
+
+          fetch('/ProcesoCajachica', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ searchInput: searchInput })
+          })
+          .then(response => {
+              // Descargar el archivo ZIP automáticamente
+              response.blob().then(blob => {
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'Total Caja Chica Semana ' + searchInput + '.zip';
+
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+              });
+          })
+          .catch(error => {
+              console.error('Error:', error);
+          });
+      }
+  </script>
+</body>
+</html>

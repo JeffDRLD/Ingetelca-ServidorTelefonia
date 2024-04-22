@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Barra de Búsqueda</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="container d-flex flex-column justify-content-center align-items-center vh-100 text-center">
+      <img src="https://ingetelca.gt/wp-content/uploads/2011/07/logopeq.png" class="img-fluid mb-3" style="max-width: 20%;">
+      <h3 class="mb-3">Ingrese la semana a descargar:</h3>
+      <input type="text" id="searchInput" class="form-control mb-3" style="width: 80%;" placeholder="Buscar...">
+      <button onclick="search()" class="btn btn-primary mb-3">Buscar</button>
+      <p id="searchResult"></p>
+      <div id="loading" style="display: none;">
+        <p>Por favor, espere...</p>
+      </div>
+  </div>
+
+  <script>
+      function search() {
+          var searchInput = document.getElementById('searchInput').value;
+
+          // Validar que el valor ingresado sea un número entre 1 y 52
+          if (!/^(0?[1-9]|[1-4][0-9]|5[0-2])$/.test(searchInput)) {
+              alert('Por favor, ingrese una semana válida (1-52).');
+              return;
+          }
+
+          document.getElementById('loading').style.display = 'block'; // Mostrar mensaje de espera
+
+          fetch('/ProcesoCajachicaFinal', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ searchInput: searchInput })
+          })
+          .then(response => {
+              // Descargar el archivo PDF automáticamente
+              response.blob().then(blob => {
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'Caja chica semana ' + searchInput +'.pdf';
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+              });
+          })
+          .catch(error => {
+              console.error('Error:', error);
+          })
+          .finally(() => {
+              document.getElementById('loading').style.display = 'none'; // Ocultar mensaje de espera
+          });
+      }
+  </script>
+</body>
+</html>

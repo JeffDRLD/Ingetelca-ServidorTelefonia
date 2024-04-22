@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Descargas Recibos</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+      .search-container {
+          position: relative;
+          width: 80%;
+          margin: 0 auto;
+      }
+
+      .list-group {
+          position: absolute;
+          top: 100%;
+          width: 100%;
+          max-height: 200px;
+          overflow-y: auto;
+          background-color: #fff;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          z-index: 1000;
+          display: none; /* Ocultar la lista inicialmente */
+      }
+
+      .list-group-item {
+          cursor: pointer;
+      }
+
+      .list-group-item:hover {
+          background-color: #f0f0f0;
+      }
+
+      /* Estilos para el elemento de carga */
+      .loading {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(255, 255, 255, 0.8);
+          z-index: 9999;
+          text-align: center;
+          padding-top: 20%;
+      }
+
+      .loading img {
+          width: 50px;
+      }
+  </style>
+</head>
+<body>
+  <div class="container d-flex flex-column justify-content-center align-items-center vh-100 text-center">
+      <img src="https://ingetelca.gt/wp-content/uploads/2011/07/logopeq.png" class="img-fluid mb-3" style="max-width: 20%;">
+      <h3 class="mb-3">Ingrese la semana y el técnico para descargar su documentacion:</h3>
+      <div class="search-container">
+
+          <div id="searchResults" class="list-group"></div>
+          <input type="number" id="weekInput" class="form-control mb-3" style="width: 100%;" placeholder="Ingrese la semana..." min="1" max="52">
+        <input type="text" id="searchInput" class="form-control mb-3" style="width: 100%;" placeholder="Ingrese el nombre del tecnico...">
+      </div>
+      <button onclick="search()" class="btn btn-primary mb-3">Buscar</button>
+  </div>
+
+  <!-- Elemento de carga -->
+  <div class="loading" id="loading">
+      <img src="https://cdn.pixabay.com/animation/2023/08/11/21/18/21-18-05-265_512.gif" alt="Cargando...">
+  </div>
+
+  <script>
+      let namesData = []; // Variable para almacenar los nombres obtenidos
+
+      // Function to fetch names and populate select element
+      function fetchNames() {
+          fetch('/NameObtain', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({})
+          })
+          .then(response => response.json())
+          .then(data => {
+              namesData = data; // Almacenar los nombres obtenidos
+          })
+          .catch(error => {
+              console.error('Error:', error);
+          });
+      }
+
+      // Function to update the select element with filtered names
+      function updateNameList(searchTerm) {
+          const searchResultsElement = document.getElementById('searchResults');
+          searchResultsElement.innerHTML = '';
+          const searchResults = namesData.filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()));
+          searchResults.forEach(name => {
+              const listItem = document.createElement('button');
+              listItem.textContent = name;
+              listItem.className = 'list-group-item list-group-item-action';
+              listItem.addEventListener('click', function() {
+                  document.getElementById('searchInput').value = name;
+                  searchResultsElement.style.display = 'none';
+              });
+              searchResultsElement.appendChild(listItem);
+          });
+          searchResultsElement.style.display = searchResults.length > 0 ? 'block' : 'none';
+      }
+
+      // Function to initiate search
+      function search() {
+          var name = document.getElementById('searchInput').value;
+          var week = document.getElementById('weekInput').value;
+
+          // Validar que el nombre esté en la lista de nombres obtenidos
+          if (!namesData.includes(name)) {
+              alert('Por favor, seleccione un nombre válido de la lista.');
+              return;
+          }
+
+          // Validar que la semana sea un número del 1 al 52
+          if (isNaN(week) || week < 1 || week > 52) {
+              alert('Por favor, ingrese un número válido para la semana (entre 1 y 52).');
+              return;
+          }
+
+          // Mostrar el elemento de carga
+          document.getElementById('loading').style.display = 'block';
+
+          fetch('/ConstructorDocs', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ name: name, week: week })
+          })
+          .then(response => {
+              // Verificar si la respuesta es un archivo PDF
+              if (response.headers.get('content-type').includes('application/pdf')) {
+                  return response.blob();
+              } else {
+                  throw new Error('El servidor no devolvió un archivo PDF válido.');
+              }
+          })
+          .then(blob => {
+              // Descargar el archivo PDF automáticamente
+              const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'CajaChica_Facturas_Recibos_' + name + '_Semana_' + week + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            // Ocultar el elemento de carga después de descargar el archivo
+            document.getElementById('loading').style.display = 'none';
+            })
+            .catch(error => {
+            console.error('Error:', error);
+            alert('Ocurrió un error al procesar la solicitud.');
+            // Ocultar el elemento de carga en caso de error
+            document.getElementById('loading').style.display = 'none';
+            });
+            }
+
+            // Fetch names when the page loads
+            fetchNames();
+
+            // Event listener to update the search results when the search input changes
+            document.getElementById('searchInput').addEventListener('input', function() {
+            updateNameList(this.value);
+            });
+
+            // Event listener to hide the search results when clicking outside
+            document.addEventListener('click', function(event) {
+            const searchResultsElement = document.getElementById('searchResults');
+            if (event.target !== searchResultsElement && !searchResultsElement.contains(event.target)) {
+            searchResultsElement.style.display = 'none';
+            }
+            });
+            </script>
+            </body>
+            </html>

@@ -1,0 +1,20 @@
+{
+  "files": {
+    "DiccionarioPDFs/SEMANA_14/datos_CARLOS_MAC.csv": [
+      {
+        "id": "f4576b09-411d-4367-a99a-6ca504705051",
+        "line": 1,
+        "version": 1,
+        "index": 0
+      }
+    ],
+    "index.js": [
+      {
+        "id": "529df457-3d6f-4904-8531-03a477d6b0b6",
+        "line": 30,
+        "version": 13904,
+        "index": 1690
+      }
+    ]
+  }
+}
